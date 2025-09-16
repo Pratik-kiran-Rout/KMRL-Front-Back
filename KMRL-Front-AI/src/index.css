@@ -1,0 +1,184 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    /* KMRL DocHub Design System - Teal/Turquoise Theme */
+    --background: 0 0% 100%;
+    --foreground: 190 95% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 190 95% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 190 95% 12%;
+
+    /* Primary: Teal/Turquoise System */
+    --primary: 174 100% 41%;  /* Rich Teal */
+    --primary-foreground: 0 0% 100%;
+    --primary-light: 174 90% 51%;  /* Lighter Teal */
+    --primary-dark: 174 100% 31%;  /* Darker Teal */
+
+    /* Secondary: Turquoise accent */
+    --secondary: 178 100% 85%;
+    --secondary-foreground: 190 95% 12%;
+
+    /* Muted: Light turquoise tones */
+    --muted: 178 90% 95%;
+    --muted-foreground: 190 70% 25%;
+
+    /* Accent: Complementary turquoise */
+    --accent: 181 100% 92%;
+    --accent-foreground: 190 95% 12%;
+
+    /* Priority Colors System */
+    --priority-critical: 0 100% 67%;    /* Red */
+    --priority-high: 25 100% 50%;       /* Orange */
+    --priority-medium: 45 100% 50%;     /* Yellow */
+    --priority-low: 120 100% 40%;       /* Green */
+    --priority-info: 200 100% 50%;      /* Blue */
+
+    /* Status Colors */
+    --success: 120 100% 40%;
+    --warning: 45 100% 50%;
+    --destructive: 0 100% 67%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Borders and Inputs */
+    --border: 178 30% 85%;
+    --input: 178 30% 92%;
+    --ring: 174 100% 41%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    /* Dark mode with teal/turquoise theme */
+    --background: 190 95% 8%;
+    --foreground: 178 90% 95%;
+
+    --card: 190 90% 10%;
+    --card-foreground: 178 90% 95%;
+
+    --popover: 190 90% 10%;
+    --popover-foreground: 178 90% 95%;
+
+    --primary: 174 100% 51%;
+    --primary-foreground: 190 95% 8%;
+    --primary-light: 174 90% 61%;
+    --primary-dark: 174 100% 41%;
+
+    --secondary: 190 80% 15%;
+    --secondary-foreground: 178 90% 95%;
+
+    --muted: 190 70% 15%;
+    --muted-foreground: 178 60% 70%;
+
+    --accent: 190 70% 18%;
+    --accent-foreground: 178 90% 95%;
+
+    --priority-critical: 0 100% 60%;
+    --priority-high: 25 100% 55%;
+    --priority-medium: 45 100% 55%;
+    --priority-low: 120 100% 45%;
+    --priority-info: 200 100% 55%;
+
+    --success: 120 100% 45%;
+    --warning: 45 100% 55%;
+    --destructive: 0 100% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 190 50% 20%;
+    --input: 190 50% 18%;
+    --ring: 174 100% 51%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+
+  /* Custom animations and effects */
+  .gradient-primary {
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-light)));
+  }
+
+  .gradient-secondary {
+    background: linear-gradient(135deg, hsl(var(--secondary)), hsl(var(--accent)));
+  }
+
+  .metro-train-animation {
+    animation: metro-move 3s ease-in-out infinite;
+  }
+
+  @keyframes metro-move {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(20px); }
+  }
+
+  .priority-critical {
+    color: hsl(var(--priority-critical));
+  }
+
+  .priority-high {
+    color: hsl(var(--priority-high));
+  }
+
+  .priority-medium {
+    color: hsl(var(--priority-medium));
+  }
+
+  .priority-low {
+    color: hsl(var(--priority-low));
+  }
+
+  .priority-info {
+    color: hsl(var(--priority-info));
+  }
+
+  /* Glassmorphism effect for cards */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  /* Smooth transitions */
+  .transition-smooth {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
