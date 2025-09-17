@@ -20,6 +20,8 @@ interface UploadFile {
   ocrText?: string;
   selectedDepartments?: string[];
   accessLevel?: "public" | "restricted" | "confidential";
+  documentId?: number;
+  summary?: string;
 }
 
 const departments = [
@@ -39,6 +41,7 @@ const departments = [
 const UploadZone = () => {
   const [dragActive, setDragActive] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<UploadFile[]>([]);
+  const [showSummary, setShowSummary] = useState<{fileId: string, summary: string} | null>(null);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -70,36 +73,64 @@ const UploadZone = () => {
       };
 
       setUploadedFiles(prev => [...prev, uploadFile]);
-      simulateUpload(uploadFile.id);
+      realUpload(uploadFile.id, file);
     });
   };
 
-  const simulateUpload = (fileId: string) => {
-    const interval = setInterval(() => {
-      setUploadedFiles(prev => prev.map(file => {
-        if (file.id === fileId) {
-          if (file.progress < 100) {
-            return { ...file, progress: file.progress + 10 };
-          } else if (file.status === "uploading") {
-            // Start processing phase
-            return { 
-              ...file, 
-              status: "processing",
-              detectedLanguage: file.file.name.includes("malayalam") ? "Malayalam" : "English",
-              suggestedType: file.file.name.toLowerCase().includes("safety") ? "Safety Notice" : 
-                           file.file.name.toLowerCase().includes("maintenance") ? "Maintenance Report" :
-                           file.file.name.toLowerCase().includes("compliance") ? "Compliance Report" : "General Document",
-              ocrText: "Sample OCR text extracted from document..."
-            };
-          } else if (file.status === "processing") {
-            // Complete processing
-            clearInterval(interval);
-            return { ...file, status: "completed" };
-          }
-        }
-        return file;
-      }));
-    }, 500);
+  const realUpload = async (fileId: string, file: File) => {
+    try {
+      const { uploadDocument } = await import('../services/api');
+      
+      setUploadedFiles(prev => prev.map(f => 
+        f.id === fileId ? { ...f, status: "uploading", progress: 50 } : f
+      ));
+      
+      const result = await uploadDocument(file);
+      
+      setUploadedFiles(prev => prev.map(f => 
+        f.id === fileId ? { 
+          ...f, 
+          status: "completed", 
+          progress: 100,
+          detectedLanguage: result.language || "English",
+          suggestedType: result.document_type || "General Document",
+          documentId: result.id
+        } : f
+      ));
+      
+      toast({
+        title: "Upload successful",
+        description: `${file.name} has been uploaded and processed.`,
+      });
+      
+    } catch (error) {
+      setUploadedFiles(prev => prev.map(f => 
+        f.id === fileId ? { ...f, status: "error" } : f
+      ));
+      
+      toast({
+        title: "Upload failed",
+        description: "Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleViewSummary = async (fileId: string) => {
+    const file = uploadedFiles.find(f => f.id === fileId);
+    if (!file?.documentId) return;
+    
+    try {
+      const { getSummary } = await import('../services/api');
+      const summaryResult = await getSummary(file.documentId);
+      setShowSummary({ fileId, summary: summaryResult.summary_text });
+    } catch (error) {
+      toast({
+        title: "Summary failed",
+        description: "Could not generate summary.",
+        variant: "destructive",
+      });
+    }
   };
 
   const getStatusIcon = (status: UploadFile["status"]) => {
@@ -268,7 +299,11 @@ const UploadZone = () => {
                     <div className="space-y-2">
                       <Separator />
                       <div className="flex gap-2">
-                        <Button size="sm" variant="outline">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => handleViewSummary(file.id)}
+                        >
                           View Summary
                         </Button>
                         <Button size="sm" variant="outline">
