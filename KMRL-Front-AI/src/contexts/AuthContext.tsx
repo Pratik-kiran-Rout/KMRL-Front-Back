@@ -46,26 +46,59 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Mock authentication - in real app, this would be an API call
-    if (email === 'admin@kmrl.co.in' && password === 'admin123') {
-      const userData = {
-        id: '1',
-        name: 'Rajesh Kumar',
-        email: 'admin@kmrl.co.in',
-        role: 'Chief Safety Officer',
-        department: 'Operations & Safety'
-      };
-      setUser(userData);
-      localStorage.setItem('dochub-user', JSON.stringify(userData));
+    try {
+      console.log('Attempting login with:', email);
+      // Real API call to backend
+      const response = await fetch('http://localhost:8000/api/v1/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+      
+      console.log('Login response status:', response.status);
+      
+      if (response.ok) {
+        const { access_token } = await response.json();
+        console.log('Got access token');
+        
+        // Get user profile with token
+        const profileResponse = await fetch('http://localhost:8000/api/v1/auth/profile', {
+          headers: {
+            'Authorization': `Bearer ${access_token}`,
+          },
+        });
+        
+        if (profileResponse.ok) {
+          const userData = await profileResponse.json();
+          console.log('Got user data:', userData);
+          setUser({
+            id: userData.id.toString(),
+            name: userData.name,
+            email: userData.email,
+            role: userData.role,
+            department: userData.department
+          });
+          localStorage.setItem('dochub-user', JSON.stringify(userData));
+          localStorage.setItem('dochub-token', access_token);
+          setIsLoading(false);
+          return true;
+        } else {
+          console.error('Profile fetch failed:', profileResponse.status);
+        }
+      } else {
+        const errorData = await response.json();
+        console.error('Login failed:', errorData);
+      }
+      
       setIsLoading(false);
-      return true;
+      return false;
+    } catch (error) {
+      console.error('Login error:', error);
+      setIsLoading(false);
+      return false;
     }
-    
-    setIsLoading(false);
-    return false;
   };
 
   const loginWithGoogle = async (): Promise<boolean> => {

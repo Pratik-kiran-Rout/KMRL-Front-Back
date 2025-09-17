@@ -55,3 +55,8 @@ async def health_check():
             "search": "available"
         }
     }
+
+@app.get("/test")
+async def test_endpoint():
+    print("TEST ENDPOINT CALLED!")
+    return {"message": "Backend is working!"}

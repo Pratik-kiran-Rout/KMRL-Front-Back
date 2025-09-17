@@ -1,0 +1,9 @@
+
+    KMRL Safety Report
+    Date: 2024-01-15
+    Department: Operations
+    
+    This is a test safety document for the Kochi Metro Rail Limited.
+    The document contains important safety protocols and procedures.
+    All staff must follow these guidelines for safe operations.
+    

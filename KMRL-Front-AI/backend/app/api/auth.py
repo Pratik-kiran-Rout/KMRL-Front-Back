@@ -12,15 +12,26 @@ router = APIRouter()
 security = HTTPBearer()
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security), db: Session = Depends(get_db)):
-    token = credentials.credentials
-    username = verify_token(token)
-    user = db.query(User).filter(User.email == username).first()
-    if user is None:
+    try:
+        token = credentials.credentials
+        email = verify_token(token)
+        if not email:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token"
+            )
+        user = db.query(User).filter(User.email == email).first()
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found"
+            )
+        return user
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found"
+            detail="Invalid token"
         )
-    return user
 
 @router.post("/register", response_model=UserSchema)
 async def register(user: UserCreate, db: Session = Depends(get_db)):
@@ -51,7 +62,13 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
 async def login(user_credentials: UserLogin, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == user_credentials.email).first()
     
-    if not user or not verify_password(user_credentials.password, user.hashed_password):
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password"
+        )
+    
+    if not verify_password(user_credentials.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password"
