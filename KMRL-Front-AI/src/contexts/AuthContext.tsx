@@ -37,7 +37,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   useEffect(() => {
     const savedUser = localStorage.getItem('dochub-user');
-    if (savedUser) {
+    const savedToken = localStorage.getItem('token');
+    if (savedUser && savedToken) {
       setUser(JSON.parse(savedUser));
     }
     setIsLoading(false);
@@ -81,7 +82,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             department: userData.department
           });
           localStorage.setItem('dochub-user', JSON.stringify(userData));
-          localStorage.setItem('dochub-token', access_token);
+          localStorage.setItem('token', access_token);
           setIsLoading(false);
           return true;
         } else {
@@ -142,6 +143,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const logout = () => {
     setUser(null);
     localStorage.removeItem('dochub-user');
+    localStorage.removeItem('token');
   };
 
   return (

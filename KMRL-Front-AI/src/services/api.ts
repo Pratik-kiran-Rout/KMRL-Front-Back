@@ -8,6 +8,11 @@ export const uploadDocument = async (file: File, title?: string, documentType?: 
   if (department) formData.append('department', department);
 
   const token = localStorage.getItem('token');
+  console.log('Upload token:', token ? 'exists' : 'missing');
+  
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
   
   const response = await fetch(`${API_BASE_URL}/documents/upload`, {
     method: 'POST',
@@ -18,7 +23,9 @@ export const uploadDocument = async (file: File, title?: string, documentType?: 
   });
 
   if (!response.ok) {
-    throw new Error('Upload failed');
+    const errorText = await response.text();
+    console.error('Upload failed:', response.status, errorText);
+    throw new Error(`Upload failed: ${response.status}`);
   }
 
   return response.json();

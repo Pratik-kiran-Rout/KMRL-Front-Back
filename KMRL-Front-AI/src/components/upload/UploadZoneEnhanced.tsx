@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { Upload, FileText, Image, Loader2, CheckCircle, AlertCircle, Users, Lock, Send } from "lucide-react";
+import { Upload, FileText, Image, Loader2, CheckCircle, AlertCircle, Users, Lock, Send, Eye, FileSearch, Download } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -7,7 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "@/components/ui/use-toast";
+import { uploadDocument, getSummary } from "@/services/api";
 
 interface UploadFile {
   id: string;
@@ -20,6 +23,9 @@ interface UploadFile {
   ocrText?: string;
   selectedDepartments?: string[];
   accessLevel?: "public" | "restricted" | "confidential";
+  documentId?: number;
+  summary?: string;
+  summaryLoading?: boolean;
 }
 
 const departments = [
@@ -39,6 +45,7 @@ const departments = [
 const UploadZoneEnhanced = () => {
   const [dragActive, setDragActive] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<UploadFile[]>([]);
+  const [viewingFile, setViewingFile] = useState<UploadFile | null>(null);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -70,34 +77,57 @@ const UploadZoneEnhanced = () => {
       };
 
       setUploadedFiles(prev => [...prev, uploadFile]);
-      simulateUpload(uploadFile.id);
+      performActualUpload(uploadFile.id, file);
     });
   };
 
-  const simulateUpload = (fileId: string) => {
-    const interval = setInterval(() => {
-      setUploadedFiles(prev => prev.map(file => {
-        if (file.id === fileId) {
-          if (file.progress < 100) {
-            return { ...file, progress: file.progress + 10 };
-          } else if (file.status === "uploading") {
-            return { 
-              ...file, 
-              status: "processing",
-              detectedLanguage: file.file.name.includes("malayalam") ? "Malayalam" : "English",
-              suggestedType: file.file.name.toLowerCase().includes("safety") ? "Safety Notice" : 
-                           file.file.name.toLowerCase().includes("maintenance") ? "Maintenance Report" :
-                           file.file.name.toLowerCase().includes("compliance") ? "Compliance Report" : "General Document",
-              ocrText: "Sample OCR text extracted from document..."
-            };
-          } else if (file.status === "processing") {
-            clearInterval(interval);
-            return { ...file, status: "tagging" };
-          }
+  const performActualUpload = async (fileId: string, file: File) => {
+    try {
+      // Simulate progress
+      const progressInterval = setInterval(() => {
+        setUploadedFiles(prev => prev.map(f => 
+          f.id === fileId && f.progress < 90 ? { ...f, progress: f.progress + 10 } : f
+        ));
+      }, 200);
+
+      // Actual upload
+      const response = await uploadDocument(file);
+      clearInterval(progressInterval);
+      
+      setUploadedFiles(prev => prev.map(f => {
+        if (f.id === fileId) {
+          return {
+            ...f,
+            progress: 100,
+            status: "processing",
+            documentId: response.id,
+            detectedLanguage: file.name.includes("malayalam") ? "Malayalam" : "English",
+            suggestedType: file.name.toLowerCase().includes("safety") ? "Safety Notice" : 
+                         file.name.toLowerCase().includes("maintenance") ? "Maintenance Report" :
+                         file.name.toLowerCase().includes("compliance") ? "Compliance Report" : "General Document",
+            ocrText: "Text extracted from document..."
+          };
         }
-        return file;
+        return f;
       }));
-    }, 500);
+
+      // Move to tagging after processing
+      setTimeout(() => {
+        setUploadedFiles(prev => prev.map(f => 
+          f.id === fileId ? { ...f, status: "tagging" } : f
+        ));
+      }, 2000);
+      
+    } catch (error) {
+      setUploadedFiles(prev => prev.map(f => 
+        f.id === fileId ? { ...f, status: "error", progress: 0 } : f
+      ));
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload document. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleDepartmentChange = (fileId: string, departments: string[]) => {
@@ -132,6 +162,54 @@ const UploadZoneEnhanced = () => {
       description: `Document shared with ${file.selectedDepartments.length} department(s).`,
       duration: 5000,
     });
+  };
+
+  const handleGenerateSummary = async (fileId: string) => {
+    const file = uploadedFiles.find(f => f.id === fileId);
+    if (!file?.documentId) return;
+
+    setUploadedFiles(prev => prev.map(f => 
+      f.id === fileId ? { ...f, summaryLoading: true } : f
+    ));
+
+    try {
+      const summaryResponse = await getSummary(file.documentId);
+      setUploadedFiles(prev => prev.map(f => 
+        f.id === fileId ? { 
+          ...f, 
+          summary: summaryResponse.summary_text || "Summary generated successfully.",
+          summaryLoading: false 
+        } : f
+      ));
+      toast({
+        title: "Summary Generated",
+        description: "Document summary has been created."
+      });
+    } catch (error) {
+      setUploadedFiles(prev => prev.map(f => 
+        f.id === fileId ? { ...f, summaryLoading: false } : f
+      ));
+      toast({
+        title: "Summary Failed",
+        description: "Could not generate summary. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleViewFile = (file: UploadFile) => {
+    setViewingFile(file);
+  };
+
+  const handleDownloadFile = (file: UploadFile) => {
+    const url = URL.createObjectURL(file.file);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = file.file.name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const getStatusIcon = (status: UploadFile["status"]) => {
@@ -399,15 +477,94 @@ const UploadZoneEnhanced = () => {
                         </div>
                       </div>
                       
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline">
-                          View Summary
+                      {file.summary && (
+                        <div className="p-3 bg-primary/5 rounded-lg border text-xs">
+                          <div className="flex items-center gap-2 mb-2">
+                            <FileSearch className="h-3 w-3 text-primary" />
+                            <span className="font-medium text-primary">AI Summary:</span>
+                          </div>
+                          <p className="text-muted-foreground">{file.summary}</p>
+                        </div>
+                      )}
+                      
+                      <div className="flex gap-2 flex-wrap">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => handleGenerateSummary(file.id)}
+                          disabled={file.summaryLoading}
+                        >
+                          {file.summaryLoading ? (
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          ) : (
+                            <FileSearch className="h-3 w-3 mr-1" />
+                          )}
+                          {file.summary ? "Regenerate Summary" : "Generate Summary"}
                         </Button>
+                        
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button size="sm" onClick={() => handleViewFile(file)}>
+                              <Eye className="h-3 w-3 mr-1" />
+                              View Document
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-4xl max-h-[80vh]">
+                            <DialogHeader>
+                              <DialogTitle>{file.file.name}</DialogTitle>
+                              <DialogDescription>
+                                {file.suggestedType} • {(file.file.size / 1024 / 1024).toFixed(2)} MB
+                              </DialogDescription>
+                            </DialogHeader>
+                            <ScrollArea className="h-[60vh] w-full">
+                              <div className="space-y-4">
+                                {file.file.type.startsWith('image/') ? (
+                                  <img 
+                                    src={URL.createObjectURL(file.file)} 
+                                    alt={file.file.name}
+                                    className="max-w-full h-auto rounded-lg"
+                                  />
+                                ) : (
+                                  <div className="p-4 bg-muted rounded-lg">
+                                    <p className="text-sm text-muted-foreground mb-2">File Preview:</p>
+                                    <p className="text-sm">{file.ocrText || "Text content will be displayed here after processing."}</p>
+                                  </div>
+                                )}
+                                
+                                {file.summary && (
+                                  <div className="p-4 bg-primary/5 rounded-lg border">
+                                    <h4 className="font-medium text-sm mb-2 text-primary">AI Summary:</h4>
+                                    <p className="text-sm">{file.summary}</p>
+                                  </div>
+                                )}
+                              </div>
+                            </ScrollArea>
+                            <div className="flex gap-2 pt-4">
+                              <Button size="sm" onClick={() => handleDownloadFile(file)}>
+                                <Download className="h-3 w-3 mr-1" />
+                                Download
+                              </Button>
+                              {!file.summary && (
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => handleGenerateSummary(file.id)}
+                                  disabled={file.summaryLoading}
+                                >
+                                  {file.summaryLoading ? (
+                                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                  ) : (
+                                    <FileSearch className="h-3 w-3 mr-1" />
+                                  )}
+                                  Generate Summary
+                                </Button>
+                              )}
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                        
                         <Button size="sm" variant="outline">
                           Edit Access
-                        </Button>
-                        <Button size="sm">
-                          View Document
                         </Button>
                       </div>
                     </div>
