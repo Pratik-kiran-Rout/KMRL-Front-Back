@@ -1,0 +1,71 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kmrl-dochub-backend"
+version = "1.0.0"
+description = "KMRL DocHub - Intelligent Document Management Backend"
+authors = [{name = "KMRL Team", email = "dev@kmrl.co.in"}]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.11"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "fastapi>=0.104.1",
+    "uvicorn>=0.24.0",
+    "sqlalchemy>=2.0.23",
+    "faiss-cpu>=1.9.0",
+    "transformers>=4.35.2",
+    "sentence-transformers>=2.2.2",
+    "pytesseract>=0.3.10",
+    "opencv-python>=4.8.1",
+    "celery>=5.3.4",
+    "redis>=5.0.1",
+    "neo4j>=5.14.1",
+    "pandas>=2.1.3",
+    "numpy>=1.25.2",
+    "python-multipart>=0.0.6",
+    "python-jose[cryptography]>=3.3.0",
+    "passlib[bcrypt]>=1.7.4",
+    "python-dotenv>=1.0.0",
+    "pydantic>=2.5.0",
+    "pydantic-settings>=2.1.0",
+    "Pillow>=10.0.0",
+    "email-validator>=2.0.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0"
+]
+
+[project.urls]
+Homepage = "https://github.com/kmrl/dochub-backend"
+Repository = "https://github.com/kmrl/dochub-backend.git"
+Issues = "https://github.com/kmrl/dochub-backend/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+
+[tool.black]
+line-length = 88
+target-version = ['py311']
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
