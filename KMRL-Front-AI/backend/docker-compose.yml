@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  backend:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./app:/app/app
+    environment:
+      - DATABASE_URL=sqlite:///./data/kmrl.db
+      - REDIS_URL=redis://redis:6379
+      - NEO4J_URL=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=password
+    depends_on:
+      - redis
+      - neo4j
+
+  neo4j:
+    image: neo4j:5.14-community
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      - NEO4J_AUTH=neo4j/password
+      - NEO4J_PLUGINS=["apoc"]
+    volumes:
+      - ./data/neo4j:/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./data/redis:/data
+
+  celery:
+    build: .
+    command: celery -A app.core.celery worker --loglevel=info
+    volumes:
+      - ./data:/app/data
+      - ./app:/app/app
+    environment:
+      - DATABASE_URL=sqlite:///./data/kmrl.db
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
